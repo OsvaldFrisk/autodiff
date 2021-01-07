@@ -30,7 +30,33 @@ class TestTensor(unittest.TestCase):
         Tensor([1, 2, 3], requires_gradient=True)
         Tensor(np.array([1, 2, 3]), requires_gradient=True)
 
+    def test_tensor_backward_with_gradient(self):
+        t = Tensor([1, 2, 3], requires_gradient=True)
+        t.backward(Tensor(2.))
+        tensor_assert(t.gradient.data, [2, 2, 2])
+
     def test_tensoroperator_sum(self):
         t = Tensor([1, 2, 3], requires_gradient=True)
         t.sum().backward()
-        tensor_assert(t.gradient.data, [1, 1, 1])
+        tensor_assert(t.gradient, [1, 1, 1])
+
+    def test_tensor_add(self):
+        t1 = Tensor([1, 2, 3], requires_gradient=True)
+        t2 = Tensor([2, 3, 4], requires_gradient=True)
+
+        (t1 + t2).backward(Tensor([1., 2., 3.]))
+
+        tensor_assert(t1.gradient.data, [1, 2, 3])
+        tensor_assert(t2.gradient.data, [1, 2, 3])
+
+    def test_tensor_add_broadcasted(self):
+        t1 = Tensor([[1, 2, 3],
+                     [4, 5, 6]],
+                     requires_gradient=True)
+        t2 = Tensor([1, 1, 1], requires_gradient=True)
+
+        (t1 + t2).backward(Tensor([1, 1, 1]))
+
+        tensor_assert(t1.gradient.data, [[1, 1, 1],
+                                         [1, 1, 1]])
+        tensor_assert(t2.gradient.data, [1, 1, 1])

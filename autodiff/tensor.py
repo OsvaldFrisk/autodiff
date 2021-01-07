@@ -60,9 +60,36 @@ class Tensor:
             backward_gradient = dependency.gradient_func(gradient.data)
             dependency.tensor.backward(Tensor(backward_gradient))
 
+    def _ensure_tensor(self, tensorable: Union['Tensor', np.ndarray, list, float]) -> 'Tensor':
+        """checks if tensorable is a Tensor, and makes it to Tensor if it is not"""
+        if isinstance(tensorable, Tensor):
+            return tensorable
+        else:
+            return Tensor(tensorable)
+
+    def reshape(self, *shape) -> 'Tensor':
+        self._data = self._data.reshape(*shape)
+        self.shape = self._data.shape
+        return self
+
     def sum(self) -> 'Tensor':
         return _sum(self)
 
+    def __repr__(self) -> str:
+        return f"Tensor={self._data}, requires_gradient={self.requires_gradient}"
+    
+    def __add__(self, other) -> 'Tensor':
+        """called when tensor + other"""
+        return _add(self, self._ensure_tensor(other))
+
+    def __radd__(self, other) -> 'Tensor':
+        """called when other + tensor"""
+        return _add(self._ensure_tensor(other), self)
+
+    def __iadd__(self, other) -> 'Tensor':
+        """called when tensor += other"""
+        self.data = self.data + self._ensure_tensor(other).data
+        return self
 
 # Tensor operations
 def _sum(tensor: 'Tensor') -> 'Tensor':
@@ -79,5 +106,47 @@ def _sum(tensor: 'Tensor') -> 'Tensor':
             return gradient * np.ones(tensor.shape).data
 
         depends_on.append(Adjoint(tensor, gradient_func_sum))
+
+    return Tensor(data, requires_gradient, depends_on)
+
+def _add(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    """
+    Returns the sum of the two tensors
+    """
+    data = left_tensor.data + right_tensor.data
+    requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if left_tensor.requires_gradient:
+        def gradient_func_add_left(gradient: 'np.ndarray') -> 'np.ndarray':
+            ndims_added = gradient.ndim - left_tensor.data.ndim
+
+            # Added dimensions are summed out
+            for _ in range(ndims_added):
+                gradient = gradient.sum(axis=0)
+
+            # In case of broadcasting we don't want to remove dims
+            for idx, dim in enumerate(left_tensor.shape):
+                if dim == 1:
+                    gradient = gradient.sum(axis=idx, keepdims=True)
+            
+            return gradient
+
+        depends_on.append(Adjoint(left_tensor, gradient_func_add_left))
+    
+    if right_tensor.requires_gradient:
+        def gradient_func_add_right(gradient: 'np.ndarray') -> 'np.ndarray':
+            ndims_added = gradient.ndim - right_tensor.data.ndim
+
+            for _ in range(ndims_added):
+                gradient = gradient.sum(axis=0)
+
+            for idx, dim in enumerate(right_tensor.shape):
+                if dim == 1:
+                    gradient = gradient.sum(axis=idx, keepdims=True)
+
+            return gradient
+
+        depends_on.append(Adjoint(right_tensor, gradient_func_add_right))
 
     return Tensor(data, requires_gradient, depends_on)
