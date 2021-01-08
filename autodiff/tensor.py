@@ -91,6 +91,19 @@ class Tensor:
         self.data = self.data + self._ensure_tensor(other).data
         return self
 
+    def __mul__(self, other) -> 'Tensor':
+        """called when tensor * other"""
+        return _mul(self, self._ensure_tensor(other))
+
+    def __rmul__(self, other) -> 'Tensor':
+        """called when other * tensor"""
+        return _mul(self._ensure_tensor(other), self)
+
+    def __imul__(self, other) -> 'Tensor':
+        """called when tensor *= other"""
+        self.data = self.data * self._ensure_tensor(other).data
+        return self
+
 # Tensor operations
 def _sum(tensor: 'Tensor') -> 'Tensor':
     """
@@ -148,5 +161,44 @@ def _add(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
             return gradient
 
         depends_on.append(Adjoint(right_tensor, gradient_func_add_right))
+
+    return Tensor(data, requires_gradient, depends_on)
+
+def _mul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    data = left_tensor.data * right_tensor.data
+    requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if left_tensor.requires_gradient:
+        def gradient_func_mul_left(gradient: 'np.ndarray') -> 'np.ndarray':
+            gradient = gradient * right_tensor.data
+            ndims_added = gradient.ndim - left_tensor.data.ndim
+
+            for _ in range(ndims_added):
+                gradient = gradient.sum(axis=0)
+
+            for idx, dim in enumerate(left_tensor.shape):
+                if dim == 1:
+                    gradient = gradient.sum(axis=idx, keepdims=True)
+
+            return gradient
+
+        depends_on.append(Adjoint(left_tensor, gradient_func_mul_left))
+
+    if right_tensor.requires_gradient:
+        def gradient_func_mul_right(gradient: 'np.ndarray') -> 'np.ndarray':
+            gradient = gradient * left_tensor.data
+
+            ndims_added = gradient.ndim - right_tensor.data.ndim
+            for _ in range(ndims_added):
+                gradient = gradient.sum(axis=0)
+
+            for idx, dim in enumerate(right_tensor.shape):
+                if dim == 1:
+                    gradient = gradient.sum(axis=idx, keepdims=True)
+
+            return gradient
+
+        depends_on.append(Adjoint(right_tensor, gradient_func_mul_right))
 
     return Tensor(data, requires_gradient, depends_on)

@@ -60,8 +60,7 @@ class TestTensor(unittest.TestCase):
 
     def test_tensor_add_broadcasted(self):
         t1 = Tensor([[1, 2, 3],
-                     [4, 5, 6]],
-                    requires_gradient=True)
+                     [4, 5, 6]], requires_gradient=True)
         t2 = Tensor([1, 1, 1], requires_gradient=True)
 
         (t1 + t2).backward(Tensor([1, 1, 1]))
@@ -69,3 +68,25 @@ class TestTensor(unittest.TestCase):
         tensor_assert(t1.gradient, [[1, 1, 1],
                                     [1, 1, 1]])
         tensor_assert(t2.gradient, [1, 1, 1])
+
+    def test_tensor_mul(self):
+        t1 = Tensor([2, 4, 10], requires_gradient=True)
+        t2 = Tensor([0.5, 0.25, 0.1], requires_gradient=True)
+        t3 = t1 * t2
+        t3.backward(Tensor(1.))
+
+        tensor_assert(t1.gradient, t2.data)
+        tensor_assert(t2.gradient, t1.data)
+        tensor_assert(t3.gradient, [1, 1, 1])
+
+    def test_tensor_mul_broadcasted(self):
+        t1 = Tensor([[0.25, 0.1, 0.05],
+                     [0.25, 0.1, 0.05]], requires_gradient=True)
+        t2 = Tensor([2, 5, 10], requires_gradient=True)
+        t3 = t1 * t2
+        t3.backward(Tensor([1, 1, 1]))
+
+        tensor_assert(t1.gradient, [t2.data, t2.data])
+        tensor_assert(t2.gradient, [0.5, 0.2, 0.1])
+        tensor_assert(t3.gradient, [[1, 1, 1],
+                                    [1, 1, 1]])
