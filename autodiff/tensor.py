@@ -91,6 +91,7 @@ class Tensor:
         self.data = self.data + self._ensure_tensor(other).data
         return self
 
+
     def __mul__(self, other) -> 'Tensor':
         """called when tensor * other"""
         return _mul(self, self._ensure_tensor(other))
@@ -102,6 +103,22 @@ class Tensor:
     def __imul__(self, other) -> 'Tensor':
         """called when tensor *= other"""
         self.data = self.data * self._ensure_tensor(other).data
+        return self
+
+    def __neg__(self) -> 'Tensor':
+        return _neg(self)
+
+    def __sub__(self, other) -> 'Tensor':
+        """called when tensor - other"""
+        return _sub(self, self._ensure_tensor(other))
+
+    def __rsub__(self, other) -> 'Tensor':
+        """called when other - tensor"""
+        return _sub(self._ensure_tensor(other), self)
+
+    def __isub__(self, other) -> 'Tensor':
+        """called when tensor -= other"""
+        self.data = self.data - self._ensure_tensor(other).data
         return self
 
 # Tensor operations
@@ -202,3 +219,19 @@ def _mul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
         depends_on.append(Adjoint(right_tensor, gradient_func_mul_right))
 
     return Tensor(data, requires_gradient, depends_on)
+
+def _neg(tensor: 'Tensor') -> 'Tensor':
+    data = -tensor.data
+    requires_gradient = tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if requires_gradient:
+        def gradient_func_neg(gradient: 'np.ndarray') -> 'np.ndarray':
+            return -gradient
+
+        depends_on.append(Adjoint(tensor, gradient_func_neg))
+    
+    return Tensor(data, requires_gradient, depends_on)
+
+def _sub(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    return left_tensor + -right_tensor

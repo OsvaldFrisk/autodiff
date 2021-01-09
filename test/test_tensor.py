@@ -90,3 +90,35 @@ class TestTensor(unittest.TestCase):
         tensor_assert(t2.gradient, [0.5, 0.2, 0.1])
         tensor_assert(t3.gradient, [[1, 1, 1],
                                     [1, 1, 1]])
+
+    def test_tensor_neg(self):
+        t1 = Tensor([1, 2, 3], requires_gradient=True)
+        t2 = Tensor([1, 1, 1], requires_gradient=True)
+        t3 = t1 * -t2
+        t3.backward(Tensor(1.))
+
+        tensor_assert(t1.gradient, [-1, -1, -1])
+        tensor_assert(t2.gradient, [-1, -2, -3])
+
+        tensor_assert(t3.data, [-1, -2, -3])
+        tensor_assert(t3.gradient, [1, 1, 1])
+
+    def test_tensor_sub(self):
+        t1 = Tensor([1, 2, 3], requires_gradient=True)
+        t2 = Tensor([2, 3, 4], requires_gradient=True)
+
+        (t1 - t2).backward(Tensor([1.]))
+
+        tensor_assert(t1.gradient, [1, 1, 1])
+        tensor_assert(t2.gradient, [-1, -1, -1])
+
+    def test_tensor_add_broadcasted(self):
+        t1 = Tensor([[1, 2, 3],
+                     [4, 5, 6]], requires_gradient=True)
+        t2 = Tensor([1, 1, 1], requires_gradient=True)
+
+        (t1 - t2).backward(Tensor(1.))
+
+        tensor_assert(t1.gradient, [[1, 1, 1],
+                                    [1, 1, 1]])
+        tensor_assert(t2.gradient, [-1, -1, -1])
