@@ -36,6 +36,10 @@ class Tensor:
     def data(self) -> np.ndarray:
         return self._data
 
+    @property
+    def T(self):
+        return Tensor(self._data.T, self.requires_gradient, self.depends_on)
+
     @data.setter
     def data(self, new_data: np.ndarray) -> None:
         self._data = new_data
@@ -120,6 +124,9 @@ class Tensor:
         """called when tensor -= other"""
         self.data = self.data - self._ensure_tensor(other).data
         return self
+
+    def __matmul__(self, other) -> 'Tensor':
+        return _matmul(self, self._ensure_tensor(other))
 
 # Tensor operations
 def _sum(tensor: 'Tensor') -> 'Tensor':
@@ -235,3 +242,22 @@ def _neg(tensor: 'Tensor') -> 'Tensor':
 
 def _sub(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
     return left_tensor + -right_tensor
+
+def _matmul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    data = left_tensor.data @ right_tensor.data
+    requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if left_tensor.requires_gradient:
+        def gradient_func_malmut_left(gradient: 'np.ndarray') -> 'np.ndarray':
+            return gradient @ right_tensor.data.T
+    
+        depends_on.append(Adjoint(left_tensor, gradient_func_malmut_left))
+
+    if right_tensor.requires_gradient:
+        def gradient_func_malmut_right(gradient: 'np.ndarray') -> 'np.ndarray':
+            return left_tensor.data.T @ gradient
+        
+        depends_on.append(Adjoint(right_tensor, gradient_func_malmut_right))
+
+    return Tensor(data, requires_gradient, depends_on)

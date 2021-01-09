@@ -122,3 +122,29 @@ class TestTensor(unittest.TestCase):
         tensor_assert(t1.gradient, [[1, 1, 1],
                                     [1, 1, 1]])
         tensor_assert(t2.gradient, [-1, -1, -1])
+
+    def test_tensor_transpose(self):
+        t = Tensor([[2],
+                    [2]], requires_gradient=True)
+
+        tensor_assert(t.T, [[2, 2]])
+        tensor_assert(t.depends_on, t.T.depends_on)
+
+    def test_tensor_matmul(self):
+        t1 = Tensor([[1, 2, 3],
+                     [4, 5, 6]], requires_gradient=True)  # (2, 3)
+
+        t2 = Tensor([[10],
+                     [10],
+                     [10]], requires_gradient=True)  # (3, 1)
+
+        t3 = t1 @ t2  # (2, 1)
+
+        gradient = Tensor([[1],
+                           [1]])
+        t3.backward(gradient)
+
+        tensor_assert(t3.data, [[60],
+                               [150]])
+        tensor_assert(t1.gradient, gradient @ t2.T)
+        tensor_assert(t2.gradient, t1.T @ gradient)
