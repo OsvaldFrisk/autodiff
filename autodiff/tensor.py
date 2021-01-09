@@ -40,7 +40,7 @@ class Tensor:
     def T(self):
         return Tensor(self._data.T, self.requires_gradient, self.depends_on)
 
-    @data.setter
+    @data.setter  # type: ignore
     def data(self, new_data: np.ndarray) -> None:
         self._data = new_data
         # setting data invalidates gradient
@@ -82,51 +82,53 @@ class Tensor:
     def __repr__(self) -> str:
         return f"Tensor={self._data}, requires_gradient={self.requires_gradient}"
     
-    def __add__(self, other) -> 'Tensor':
+    def __add__(self, other: Tensorable) -> 'Tensor':
         """called when tensor + other"""
         return _add(self, self._ensure_tensor(other))
 
-    def __radd__(self, other) -> 'Tensor':
+    def __radd__(self, other: Tensorable) -> 'Tensor':
         """called when other + tensor"""
         return _add(self._ensure_tensor(other), self)
 
-    def __iadd__(self, other) -> 'Tensor':
+    def __iadd__(self, other: Tensorable) -> 'Tensor':
         """called when tensor += other"""
-        self.data = self.data + self._ensure_tensor(other).data
+        self.data = self.data + self._ensure_tensor(other).data  # type: ignore
         return self
 
-
-    def __mul__(self, other) -> 'Tensor':
+    def __mul__(self, other: Tensorable) -> 'Tensor':
         """called when tensor * other"""
         return _mul(self, self._ensure_tensor(other))
 
-    def __rmul__(self, other) -> 'Tensor':
+    def __rmul__(self, other: Tensorable) -> 'Tensor':
         """called when other * tensor"""
         return _mul(self._ensure_tensor(other), self)
 
-    def __imul__(self, other) -> 'Tensor':
+    def __imul__(self, other: Tensorable) -> 'Tensor':
         """called when tensor *= other"""
-        self.data = self.data * self._ensure_tensor(other).data
+        self.data = self.data * self._ensure_tensor(other).data  # type: ignore
         return self
 
     def __neg__(self) -> 'Tensor':
         return _neg(self)
 
-    def __sub__(self, other) -> 'Tensor':
+    def __sub__(self, other: Tensorable) -> 'Tensor':
         """called when tensor - other"""
         return _sub(self, self._ensure_tensor(other))
 
-    def __rsub__(self, other) -> 'Tensor':
+    def __rsub__(self, other: Tensorable) -> 'Tensor':
         """called when other - tensor"""
         return _sub(self._ensure_tensor(other), self)
 
-    def __isub__(self, other) -> 'Tensor':
+    def __isub__(self, other: Tensorable) -> 'Tensor':
         """called when tensor -= other"""
-        self.data = self.data - self._ensure_tensor(other).data
+        self.data = self.data - self._ensure_tensor(other).data  # type: ignore
         return self
 
-    def __matmul__(self, other) -> 'Tensor':
+    def __matmul__(self, other: Tensorable) -> 'Tensor':
         return _matmul(self, self._ensure_tensor(other))
+    
+    def __getitem__(self, idxs: Union[List[int], int]) -> 'Tensor':
+        return _slice(self, idxs)
 
 # Tensor operations
 def _sum(tensor: 'Tensor') -> 'Tensor':
@@ -189,6 +191,9 @@ def _add(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
     return Tensor(data, requires_gradient, depends_on)
 
 def _mul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    """
+    Returns the product of the two tensors
+    """
     data = left_tensor.data * right_tensor.data
     requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
     depends_on: List[Adjoint] = []
@@ -228,6 +233,9 @@ def _mul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
     return Tensor(data, requires_gradient, depends_on)
 
 def _neg(tensor: 'Tensor') -> 'Tensor':
+    """
+    Returns the negated tensor
+    """
     data = -tensor.data
     requires_gradient = tensor.requires_gradient
     depends_on: List[Adjoint] = []
@@ -241,9 +249,15 @@ def _neg(tensor: 'Tensor') -> 'Tensor':
     return Tensor(data, requires_gradient, depends_on)
 
 def _sub(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    """
+    Returns the difference between left_tensor and right_tensor repsectively
+    """
     return left_tensor + -right_tensor
 
 def _matmul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    """
+    Returns the matrix product of the tensors
+    """
     data = left_tensor.data @ right_tensor.data
     requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
     depends_on: List[Adjoint] = []
@@ -260,4 +274,19 @@ def _matmul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
         
         depends_on.append(Adjoint(right_tensor, gradient_func_malmut_right))
 
+    return Tensor(data, requires_gradient, depends_on)
+
+def _slice(tensor: 'Tensor', idxs: Union[List[int], int]) -> 'Tensor':
+    data = tensor.data[idxs]
+    requires_gradient = tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if requires_gradient:
+        def gradient_func_slice(gradient: 'np.ndarray') -> 'np.ndarray':
+            padded_gradient = np.zeros(tensor.shape)
+            padded_gradient[idxs] = gradient
+            return padded_gradient 
+        
+        depends_on.append(Adjoint(tensor, gradient_func_slice))
+    
     return Tensor(data, requires_gradient, depends_on)

@@ -128,7 +128,7 @@ class TestTensor(unittest.TestCase):
                     [2]], requires_gradient=True)
 
         tensor_assert(t.T, [[2, 2]])
-        tensor_assert(t.depends_on, t.T.depends_on)
+        assert t.depends_on == t.T.depends_on, 'Tensor transpose is not handling dependencies correctly'
 
     def test_tensor_matmul(self):
         t1 = Tensor([[1, 2, 3],
@@ -148,3 +148,11 @@ class TestTensor(unittest.TestCase):
                                [150]])
         tensor_assert(t1.gradient, gradient @ t2.T)
         tensor_assert(t2.gradient, t1.T @ gradient)
+
+    def test_tensor_slice(self):
+        t = rtensor(100, 100, requires_gradient=True)
+        assert t[50:, 50:].shape == (50, 50), 'Tensor slice is not handling slicing correctly'
+
+    def test_tensor_slice_list(self):
+       t = rtensor(100, 100, requires_gradient=True)
+       assert t[[1, 2]].shape == (2, 100), 'Tensor slice is not handling list slicing correctly'
