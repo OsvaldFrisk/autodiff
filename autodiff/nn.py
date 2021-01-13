@@ -122,22 +122,3 @@ def _relu(inputs: Tensor) -> Tensor:
 
     return Tensor(data, requires_gradient, depends_on)
 
-class Softmax(Activation):
-    def __init__(self):
-        super().__init__(_softmax)
-
-def _softmax(tensor: Tensor) -> Tensor:
-    data = np.exp(tensor.data)/np.sum(np.exp(tensor.data), axis=0)
-    requires_gradient = tensor.requires_gradient
-    depends_on: List[Adjoint] = []
-
-    if requires_gradient:
-        def gradient_func_tanh(gradient: Tensor) -> Tensor:
-            '''https://stackoverflow.com/questions/40575841/numpy-calculate-the-derivative-of-the-softmax-function'''
-            SM = tensor.data.reshape((-1, 1))
-
-            return gradient * (np.diagflat(tensor.data) - (SM @ SM.T))
-
-        depends_on.append(Adjoint(tensor, gradient_func_tanh))
-
-    return Tensor(data, requires_gradient, depends_on)
