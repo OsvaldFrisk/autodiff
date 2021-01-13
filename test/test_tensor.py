@@ -2,10 +2,9 @@ import unittest
 import numpy as np
 
 from typing import Tuple
-from numpy.core.numeric import require
 
 from numpy.testing import assert_array_almost_equal
-from autodiff.tensor import Tensor, Tensorable
+from autodiff.tensor import Tensor, Tensorable, log
 
 
 def rtensor(*shape: Tuple, requires_gradient: bool = True) -> Tensor:
@@ -159,11 +158,19 @@ class TestTensor(unittest.TestCase):
         assert t[[1, 2]].shape == (2, 100), 'Tensor slice is not handling list slicing correctly'
 
     def test_tensor_division(self):
-        t1 = Tensor(2., requires_gradient=True)
-        t2 = Tensor(10., requires_gradient=True)
+        t1 = Tensor([2., 2.], requires_gradient=True)
+        t2 = Tensor([10., 10.], requires_gradient=True)
         t3 = t1/t2
-        t3.backward()
+        t3.backward(Tensor(1.))
 
-        tensor_assert(t3, [0.2])
-        tensor_assert(t1.gradient, [0.1])
-        tensor_assert(t2.gradient, [-0.02])
+        tensor_assert(t3, [0.2, 0.2])
+        tensor_assert(t1.gradient, [0.1, 0.1])
+        tensor_assert(t2.gradient, [-0.02, -0.02])
+    
+    def test_tensor_natural_log(self):
+        t1 = Tensor(2., requires_gradient=True)
+        t2 = log(t1)
+        t2.backward(Tensor(1.))
+
+        tensor_assert(t2, [0.693147, 0.693147])
+        tensor_assert(t1.gradient, [0.5, 0.5])

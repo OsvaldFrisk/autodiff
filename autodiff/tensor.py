@@ -57,7 +57,7 @@ class Tensor:
                 gradient = Tensor(1.)
             else:
                 raise RuntimeError("No gradient specified")
-        
+
         self.gradient.data = self.gradient.data + gradient.data  # type: ignore
 
         for dependency in self.depends_on:
@@ -81,7 +81,7 @@ class Tensor:
 
     def __repr__(self) -> str:
         return f"Tensor={self._data}, requires_gradient={self.requires_gradient}"
-    
+
     def __add__(self, other: Tensorable) -> 'Tensor':
         """called when tensor + other"""
         return _add(self, self._ensure_tensor(other))
@@ -126,7 +126,7 @@ class Tensor:
 
     def __matmul__(self, other: Tensorable) -> 'Tensor':
         return _matmul(self, self._ensure_tensor(other))
-    
+
     def __getitem__(self, idxs: Union[List[int], int]) -> 'Tensor':
         return _slice(self, idxs)
 
@@ -174,11 +174,11 @@ def _add(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
             for idx, dim in enumerate(left_tensor.shape):
                 if dim == 1:
                     gradient = gradient.sum(axis=idx, keepdims=True)
-            
+
             return gradient
 
         depends_on.append(Adjoint(left_tensor, gradient_func_add_left))
-    
+
     if right_tensor.requires_gradient:
         def gradient_func_add_right(gradient: np.ndarray) -> np.ndarray:
             ndims_added = gradient.ndim - right_tensor.data.ndim
@@ -251,7 +251,7 @@ def _neg(tensor: 'Tensor') -> 'Tensor':
             return -gradient
 
         depends_on.append(Adjoint(tensor, gradient_func_neg))
-    
+
     return Tensor(data, requires_gradient, depends_on)
 
 def _sub(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
@@ -271,13 +271,13 @@ def _matmul(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
     if left_tensor.requires_gradient:
         def gradient_func_malmut_left(gradient: 'np.ndarray') -> 'np.ndarray':
             return gradient @ right_tensor.data.T
-    
+
         depends_on.append(Adjoint(left_tensor, gradient_func_malmut_left))
 
     if right_tensor.requires_gradient:
         def gradient_func_malmut_right(gradient: 'np.ndarray') -> 'np.ndarray':
             return left_tensor.data.T @ gradient
-        
+
         depends_on.append(Adjoint(right_tensor, gradient_func_malmut_right))
 
     return Tensor(data, requires_gradient, depends_on)
@@ -291,10 +291,10 @@ def _slice(tensor: 'Tensor', idxs: Union[List[int], int]) -> 'Tensor':
         def gradient_func_slice(gradient: 'np.ndarray') -> 'np.ndarray':
             padded_gradient = np.zeros(tensor.shape)
             padded_gradient[idxs] = gradient
-            return padded_gradient 
-        
+            return padded_gradient
+
         depends_on.append(Adjoint(tensor, gradient_func_slice))
-    
+
     return Tensor(data, requires_gradient, depends_on)
 
 def _div(left_tensor: Tensor, right_tensor: Tensor) -> Tensor:
@@ -303,21 +303,31 @@ def _div(left_tensor: Tensor, right_tensor: Tensor) -> Tensor:
     depends_on: List[Adjoint] = []
 
     if left_tensor.requires_gradient:
-        def gradient_func_div_left(gradient: 'np.ndarray') -> 'np.ndarray':
+        def gradient_func_div_left(gradient: np.ndarray) -> np.ndarray:  # d(x/y)/dx = 1/y
             return gradient * (1/right_tensor.data)
-    
+
         depends_on.append(Adjoint(left_tensor, gradient_func_div_left))
 
-    if right_tensor.requires_gradient:  # d(x/y)/dy = -x/y**2
-        def gradient_func_div_right(gradient: 'np.ndarray') -> 'np.ndarray':
+    if right_tensor.requires_gradient:
+        def gradient_func_div_right(gradient: np.ndarray) -> np.ndarray:  # d(x/y)/dy = -x/y**2
             return gradient * -(left_tensor.data/(right_tensor.data)**2)
-        
+
         depends_on.append(Adjoint(right_tensor, gradient_func_div_right))
 
     return Tensor(data, requires_gradient, depends_on)
 
 
-# def _log(tensor: Tensor) -> Tensor:
-#     data = np.log()
+def log(tensor: Tensor) -> Tensor:
+    data = np.log(tensor.data)
+    requires_gradient = tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if requires_gradient:
+        def gradient_func_neg(gradient: np.ndarray) -> np.ndarray:
+            return gradient * 1/tensor.data
+
+        depends_on.append(Adjoint(tensor, gradient_func_neg))
+
+    return Tensor(data, requires_gradient, depends_on)
 
 # def _pow(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
