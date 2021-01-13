@@ -130,6 +130,12 @@ class Tensor:
     def __getitem__(self, idxs: Union[List[int], int]) -> 'Tensor':
         return _slice(self, idxs)
 
+    def __truediv__(self, other: Tensorable) -> 'Tensor':
+        return _div(self, self._ensure_tensor(other))
+
+    # def __pow__(self, other: Tensorable) -> 'Tensor':
+    #     return _pow(self, self._ensure_tensor(other))
+
 # Tensor operations
 def _sum(tensor: 'Tensor') -> 'Tensor':
     """
@@ -157,7 +163,7 @@ def _add(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
     depends_on: List[Adjoint] = []
 
     if left_tensor.requires_gradient:
-        def gradient_func_add_left(gradient: 'np.ndarray') -> 'np.ndarray':
+        def gradient_func_add_left(gradient: np.ndarray) -> np.ndarray:
             ndims_added = gradient.ndim - left_tensor.data.ndim
 
             # Added dimensions are summed out
@@ -174,7 +180,7 @@ def _add(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
         depends_on.append(Adjoint(left_tensor, gradient_func_add_left))
     
     if right_tensor.requires_gradient:
-        def gradient_func_add_right(gradient: 'np.ndarray') -> 'np.ndarray':
+        def gradient_func_add_right(gradient: np.ndarray) -> np.ndarray:
             ndims_added = gradient.ndim - right_tensor.data.ndim
 
             for _ in range(ndims_added):
@@ -290,3 +296,28 @@ def _slice(tensor: 'Tensor', idxs: Union[List[int], int]) -> 'Tensor':
         depends_on.append(Adjoint(tensor, gradient_func_slice))
     
     return Tensor(data, requires_gradient, depends_on)
+
+def _div(left_tensor: Tensor, right_tensor: Tensor) -> Tensor:
+    data = left_tensor.data/right_tensor.data
+    requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if left_tensor.requires_gradient:
+        def gradient_func_div_left(gradient: 'np.ndarray') -> 'np.ndarray':
+            return gradient * (1/right_tensor.data)
+    
+        depends_on.append(Adjoint(left_tensor, gradient_func_div_left))
+
+    if right_tensor.requires_gradient:  # d(x/y)/dy = -x/y**2
+        def gradient_func_div_right(gradient: 'np.ndarray') -> 'np.ndarray':
+            return gradient * -(left_tensor.data/(right_tensor.data)**2)
+        
+        depends_on.append(Adjoint(right_tensor, gradient_func_div_right))
+
+    return Tensor(data, requires_gradient, depends_on)
+
+
+# def _log(tensor: Tensor) -> Tensor:
+#     data = np.log()
+
+# def _pow(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':

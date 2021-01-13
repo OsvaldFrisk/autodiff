@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from typing import Tuple
+from numpy.core.numeric import require
 
 from numpy.testing import assert_array_almost_equal
 from autodiff.tensor import Tensor, Tensorable
@@ -154,5 +155,15 @@ class TestTensor(unittest.TestCase):
         assert t[50:, 50:].shape == (50, 50), 'Tensor slice is not handling slicing correctly'
 
     def test_tensor_slice_list(self):
-       t = rtensor(100, 100, requires_gradient=True)
-       assert t[[1, 2]].shape == (2, 100), 'Tensor slice is not handling list slicing correctly'
+        t = rtensor(100, 100, requires_gradient=True)
+        assert t[[1, 2]].shape == (2, 100), 'Tensor slice is not handling list slicing correctly'
+
+    def test_tensor_division(self):
+        t1 = Tensor(2., requires_gradient=True)
+        t2 = Tensor(10., requires_gradient=True)
+        t3 = t1/t2
+        t3.backward()
+
+        tensor_assert(t3, [0.2])
+        tensor_assert(t1.gradient, [0.1])
+        tensor_assert(t2.gradient, [-0.02])
