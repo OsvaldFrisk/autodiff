@@ -31,7 +31,7 @@ def tensor_assert(
 
 
 class TestTensor(unittest.TestCase):
-    def test_empty_tensor(self):
+    def test_tensor_empty(self):
         Tensor([])
 
     def test_tensor_instantiation(self):
@@ -44,7 +44,7 @@ class TestTensor(unittest.TestCase):
         t.backward(Tensor(2.))
         tensor_assert(t.gradient, [2, 2, 2])
 
-    def test_tensoroperator_sum(self):
+    def test_tensor_sum(self):
         t = Tensor([1, 2, 3], requires_gradient=True)
         t.sum().backward()
         tensor_assert(t.gradient, [1, 1, 1])
