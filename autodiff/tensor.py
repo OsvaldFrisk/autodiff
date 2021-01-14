@@ -133,8 +133,8 @@ class Tensor:
     def __truediv__(self, other: Tensorable) -> 'Tensor':
         return _div(self, self._ensure_tensor(other))
 
-    # def __pow__(self, other: Tensorable) -> 'Tensor':
-    #     return _pow(self, self._ensure_tensor(other))
+    def __pow__(self, other: Tensorable) -> 'Tensor':
+        return _pow(self, self._ensure_tensor(other))
 
 # Tensor operations
 def _sum(tensor: 'Tensor') -> 'Tensor':
@@ -330,4 +330,21 @@ def log(tensor: Tensor) -> Tensor:
 
     return Tensor(data, requires_gradient, depends_on)
 
-# def _pow(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+def _pow(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
+    data = left_tensor.data**right_tensor.data
+    requires_gradient = left_tensor.requires_gradient or right_tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if left_tensor.requires_gradient:
+        def gradient_func_div_left(gradient: np.ndarray) -> np.ndarray:  # d(x**y)/dx = y*x**(y-1)
+            return gradient * (right_tensor.data*(left_tensor.data**(right_tensor.data - 1)))
+
+        depends_on.append(Adjoint(left_tensor, gradient_func_div_left))
+
+    if right_tensor.requires_gradient:
+        def gradient_func_div_right(gradient: np.ndarray) -> np.ndarray:  # d(x**y)/dy = ln(x)*x**y
+            return gradient * (data*np.log(left_tensor.data))
+
+        depends_on.append(Adjoint(right_tensor, gradient_func_div_right))
+
+    return Tensor(data, requires_gradient, depends_on)

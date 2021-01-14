@@ -166,7 +166,7 @@ class TestTensor(unittest.TestCase):
         tensor_assert(t3, [0.2, 0.2])
         tensor_assert(t1.gradient, [0.1, 0.1])
         tensor_assert(t2.gradient, [-0.02, -0.02])
-    
+
     def test_tensor_natural_log(self):
         t1 = Tensor(2., requires_gradient=True)
         t2 = log(t1)
@@ -174,3 +174,13 @@ class TestTensor(unittest.TestCase):
 
         tensor_assert(t2, [0.693147, 0.693147])
         tensor_assert(t1.gradient, [0.5, 0.5])
+
+    def test_tensor_division(self):
+        t1 = Tensor([2., 2.], requires_gradient=True)
+        t2 = Tensor([2., 4.], requires_gradient=True)
+        t3 = t1**t2
+        t3.backward(Tensor(1.))
+
+        tensor_assert(t3, [4, 16])
+        tensor_assert(t1.gradient, [4, 32])
+        tensor_assert(t2.gradient, [2.772589, 11.090355])
