@@ -101,6 +101,10 @@ more to come..
 - [ ] Binary Cross Entropy
 - [x] Cross Entropy
 
+**Optimizers:**
+- [x] Stochastic gradient descent
+- [x] [Adam](https://arxiv.org/abs/1412.6980)
+
 more to come..
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
