@@ -35,7 +35,26 @@ t2.gradient  # returns Tensor=2.0, requires_gradient=False
 **xor.py:**
 A quick example of a simple non-linear function.
 ```bash
-$python xor.py
+$ python xor.py
+Epoch: 200, Loss: 1.376881754114702
+Epoch: 400, Loss: 9.914077531156499e-05
+Epoch: 600, Loss: 9.016186371242976e-09
+Epoch: 800, Loss: 9.781083589476058e-13
+Epoch: 1000, Loss: 3.464732251500225e-10
+
+==================================================
+xor truthtable:
+[[1 0]
+ [0 1]
+ [0 1]
+ [1 0]]
+
+==================================================
+Network prediction for xor truthtable:
+[[ 1.00000237e+00 -2.37539321e-06]
+ [ 7.92300488e-06  9.99992083e-01]
+ [ 7.93465799e-06  9.99992071e-01]
+ [ 1.00000738e+00 -7.38902982e-06]]
 ```
 ![xor](./images/xor.png)
 
