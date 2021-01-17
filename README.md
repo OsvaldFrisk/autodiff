@@ -50,16 +50,16 @@ xor truthtable:
  [1 0]]
 
 ==================================================
-Network prediction for xor truthtable:
+Network prediction xor truthtable:
 [[ 1.00000237e+00 -2.37539321e-06]
  [ 7.92300488e-06  9.99992083e-01]
  [ 7.93465799e-06  9.99992071e-01]
  [ 1.00000738e+00 -7.38902982e-06]]
 ```
-![xor](./images/xor.png)
 
 **1d gan:**
 
+![1dgan](./imgs/1d-gan.gif)
 
 more to come..
 
