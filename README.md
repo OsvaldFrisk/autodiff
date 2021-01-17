@@ -32,7 +32,12 @@ t2.gradient  # returns Tensor=2.0, requires_gradient=False
 
 ```
 ## Examples
-**xor (simple non-linear function):**
+**xor.py:**
+A quick example of a simple non-linear function.
+```bash
+$python xor.py
+```
+![xor](./images/xor.png)
 
 **1d gan:**
 

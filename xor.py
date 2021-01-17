@@ -29,7 +29,7 @@ net = Sequential([
 
 # training/optimizing using stochastic gradient decent
 optimizer = SGD(net.parameters(), lr=0.05)
-for epoch in range(5000):
+for epoch in range(1000):
     optimizer.zero_grad()
     pred = net(X)
 
@@ -44,5 +44,13 @@ for epoch in range(5000):
 
 print()
 print("=" * 50)
+print(f"xor truthtable:")
+print(y.data)
+
+print()
+print("=" * 50)
 print(f"Network prediction for xor truthtable:")
 print(net(X).data)
+print()
+
+
