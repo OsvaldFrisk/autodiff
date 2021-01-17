@@ -33,6 +33,8 @@ t2.gradient  # returns Tensor=2.0, requires_gradient=False
 ```
 ## Examples
 **xor.py:**
+
+
 A quick example of a simple non-linear function.
 ```bash
 $ python xor.py
@@ -58,6 +60,8 @@ Network prediction xor truthtable:
 ```
 
 **1d-gan.py:**
+
+
 Inspired by [Jason Brownlee's awesome 1D gan](https://machinelearningmastery.com/how-to-develop-a-generative-adversarial-network-for-a-1-dimensional-function-from-scratch-in-keras/)
 example I inspired to implement it in autodiff. A gif of the generator
 learning can be seen underneath (disclaimer: this could be better/smoother
