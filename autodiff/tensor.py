@@ -323,10 +323,10 @@ def log(tensor: Tensor) -> Tensor:
     depends_on: List[Adjoint] = []
 
     if requires_gradient:
-        def gradient_func_neg(gradient: np.ndarray) -> np.ndarray:
+        def gradient_func_log(gradient: np.ndarray) -> np.ndarray:
             return gradient * 1/tensor.data
 
-        depends_on.append(Adjoint(tensor, gradient_func_neg))
+        depends_on.append(Adjoint(tensor, gradient_func_log))
 
     return Tensor(data, requires_gradient, depends_on)
 
@@ -336,15 +336,28 @@ def _pow(left_tensor: 'Tensor', right_tensor: 'Tensor') -> 'Tensor':
     depends_on: List[Adjoint] = []
 
     if left_tensor.requires_gradient:
-        def gradient_func_div_left(gradient: np.ndarray) -> np.ndarray:  # d(x**y)/dx = y*x**(y-1)
+        def gradient_func_pow_left(gradient: np.ndarray) -> np.ndarray:  # d(x**y)/dx = y*x**(y-1)
             return gradient * (right_tensor.data*(left_tensor.data**(right_tensor.data - 1)))
 
-        depends_on.append(Adjoint(left_tensor, gradient_func_div_left))
+        depends_on.append(Adjoint(left_tensor, gradient_func_pow_left))
 
     if right_tensor.requires_gradient:
-        def gradient_func_div_right(gradient: np.ndarray) -> np.ndarray:  # d(x**y)/dy = ln(x)*x**y
+        def gradient_func_pow_right(gradient: np.ndarray) -> np.ndarray:  # d(x**y)/dy = ln(x)*x**y
             return gradient * (data*np.log(left_tensor.data))
 
-        depends_on.append(Adjoint(right_tensor, gradient_func_div_right))
+        depends_on.append(Adjoint(right_tensor, gradient_func_pow_right))
+
+    return Tensor(data, requires_gradient, depends_on)
+
+def exp(tensor: Tensor) -> Tensor:
+    data = np.exp(tensor.data)
+    requires_gradient = tensor.requires_gradient
+    depends_on: List[Adjoint] = []
+
+    if requires_gradient:
+        def gradient_func_exp(gradient: np.ndarray) -> np.ndarray:
+            return gradient * data
+
+        depends_on.append(Adjoint(tensor, gradient_func_exp))
 
     return Tensor(data, requires_gradient, depends_on)
