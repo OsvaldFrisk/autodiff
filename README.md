@@ -65,8 +65,8 @@ Network prediction xor truthtable:
 Inspired by [Jason Brownlee's awesome 1D gan](https://machinelearningmastery.com/how-to-develop-a-generative-adversarial-network-for-a-1-dimensional-function-from-scratch-in-keras/)
 example I inspired to implement it in autodiff. A gif of the generator
 learning can be seen underneath (disclaimer: this could be better/smoother
-had I used a better loss function like Binary Cross Entropy instead of
-squared error).
+had I used a different loss function like [Binary Cross Entropy](https://en.wikipedia.org/wiki/Cross_entropy)
+instead of [squared error](https://en.wikipedia.org/wiki/Errors_and_residuals)).
 ![1dgan](./imgs/1d-gan.gif)
 
 more to come..
