@@ -1,6 +1,7 @@
 import numpy as np
 import inspect
-from typing import Callable, Dict, Iterator, List, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Sequence, Tuple, Union
+
 
 
 from autodiff.tensor import Tensor, Adjoint
@@ -122,3 +123,54 @@ def _relu(inputs: Tensor) -> Tensor:
 
     return Tensor(data, requires_gradient, depends_on)
 
+class CrossEntropyLoss:
+    def __call__(self, predictions: Tensor, targets: Tensor) -> Tensor:
+        loss = cross_entropy(predictions, targets)
+        requires_gradient = predictions.requires_gradient
+        depends_on: List[Adjoint] = []
+
+        if requires_gradient:
+            def gradient_func_cross_entropy(gradient: Tensor) -> Tensor:
+                """
+                https://deepnotes.io/softmax-crossentropy#derivative-of-cross-entropy-loss-with-softmax
+                X is the output from fully connected layer (num_examples x num_classes)
+                y is labels (num_examples x 1)
+                    Note that y is not one-hot encoded vector.
+                    It can be computed as y.argmax(axis=1) from one-hot encoded vectors of labels if required.
+                """
+                N = targets.shape[0]
+                dL = stable_softmax(predictions.data)
+                dL[range(N), targets.data] -= 1
+                dL = dL/N
+                return gradient * dL
+
+            depends_on.append(Adjoint(predictions, gradient_func_cross_entropy))
+
+        return Tensor(loss, True, depends_on)
+
+
+def stable_softmax(X):
+    """
+    A more stable version of softmax,
+    e.g. X = [1000, 2000, 3000] results in [0, 0, 1] and not [nan, nan, nan]
+    """
+    exps = np.exp(X.data - np.max(X.data, axis=1).reshape(-1, 1))
+    # exps = np.exp(X.data)
+    return exps / np.sum(exps)
+
+def cross_entropy(X,y):
+    """
+    X is the output from fully connected layer (num_examples x num_classes)
+    y is labels (num_examples x 1)
+    https://deepnotes.io/softmax-crossentropy#derivative-of-cross-entropy-loss-with-softmax
+    """
+    assert len(y.shape) < 3, "y has incorrect dimensions"
+    if len(y.shape) == 1:
+        y = y.reshape(-1, 1)
+
+    p = stable_softmax(X) + 1e-9
+
+    N = y.shape[0]
+    log_likelihood = -np.log(p[range(N),y.data])
+    loss = np.sum(log_likelihood) / N
+    return loss
