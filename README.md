@@ -103,7 +103,7 @@ more to come..
 
 **Optimizers:**
 - [x] Stochastic gradient descent
-- [x] [Adam](https://arxiv.org/abs/1412.6980)
+- [ ] [Adam](https://arxiv.org/abs/1412.6980)
 
 more to come..
 ## Contributing

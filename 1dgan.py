@@ -14,8 +14,6 @@ from autodiff import nn
 from autodiff import optim
 
 
-
-
 def train(
     X: Tensor,
     y: Tensor,
